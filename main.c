@@ -223,10 +223,10 @@ int main(void)
                     GPIO_MODE_AF_PP << PIN13*2 |
                     GPIO_MODE_AF_PP << PIN14*2 |
                     GPIO_MODE_AF_PP << PIN15*2;
-    GPIOD->OSPEEDR |= GPIO_SPEED_FREQ_MEDIUM << PIN12*2 |
-                      GPIO_SPEED_FREQ_MEDIUM << PIN13*2 |
-                      GPIO_SPEED_FREQ_MEDIUM << PIN14*2 |
-                      GPIO_SPEED_FREQ_MEDIUM << PIN15*2;
+    GPIOD->OSPEEDR |= GPIO_SPEED_FREQ_VERY_HIGH << PIN12*2 |
+                      GPIO_SPEED_FREQ_VERY_HIGH << PIN13*2 |
+                      GPIO_SPEED_FREQ_VERY_HIGH << PIN14*2 |
+                      GPIO_SPEED_FREQ_VERY_HIGH << PIN15*2;
     GPIOD->PUPDR |= GPIO_NOPULL << PIN12*2 |
                     GPIO_NOPULL << PIN13*2 |
                     GPIO_NOPULL << PIN14*2 |
@@ -338,8 +338,8 @@ int main(void)
                   TIM_CCMR2_OC4M_1 |
                   TIM_CCMR2_OC4M_2;
     TIM1->BDTR = TIM_BDTR_MOE;
-    TIM1->CCR1 = 1500;
-    TIM1->CCR2 = 800;
+    TIM1->CCR1 = 20000;
+    TIM1->CCR2 = 2000;
     TIM1->CCR3 = 2200;
     TIM1->CCR4 = 10000;
     TIM1->CR1 = TIM_CR1_CEN;
