@@ -7,11 +7,13 @@
 #include "stm32f4xx_hal_dac.h"
 #include "math.h"
 
-
-#define F_CPU   100000000UL
-#define APB1    F_CPU/4
+#define F_CPU       100000000UL
+#define AHB1        F_CPU
+#define APB1        F_CPU/4
+#define APB1_TIM    APB1*2
+#define APB2        F_CPU/2
+#define APB2_TIM    APB2*2
 #define SysTicks F_CPU/1000000
-
 
 #define PIN0    0
 #define PIN1    1
@@ -66,24 +68,6 @@ void USART6_IRQHandler(void)
     }
 }
 
-void TIM1_TRG_COM_TIM11_IRQHandler()
-{
-    static uint16_t t =0;
-    
-    TIM11->SR = 0;
-    
-    if(t==0)
-    {
-        t=1;
-        GPIOC->BSRR |= GPIO_BSRR_BR8;
-    }
-    else
-    {
-        t=0;
-        GPIOC->BSRR |= GPIO_BSRR_BS8;    
-    }
-}
-
 //SysTick Interrupt
 void SysTick_Handler(void)
 {
@@ -108,7 +92,7 @@ void SysTick_Handler(void)
 
 int main(void)
 {
-    __IO uint32_t StartUpCounter = 0, HSEStatus = 0, HSIStatus = 0;
+    //__IO uint32_t StartUpCounter = 0, HSEStatus = 0, HSIStatus = 0;
     
     /*RCC->CR |= RCC_CR_HSION;
 
@@ -130,7 +114,7 @@ int main(void)
     	FLASH->ACR |= (uint32_t)FLASH_ACR_LATENCY_2WS;   
         
         /* HCLK = SYSCLK || AHB prescaler*/
-        RCC->CFGR |= RCC_CFGR_HPRE_DIV1;
+        RCC->CFGR |= RCC_CFGR_HPRE_DIV1; //AHB clk = 100MHz
         
     	/* PCLK1 = HCLK || APB Low speed prescaler (APB1)*/
     	RCC->CFGR |= (uint32_t)RCC_CFGR_PPRE1_DIV4;
@@ -169,36 +153,55 @@ int main(void)
     fill_sincos();
     
     //Enable clock on port B, C, D
-    RCC-> AHB1ENR |= RCC_AHB1ENR_GPIOBEN | RCC_AHB1ENR_GPIODEN | RCC_AHB1ENR_GPIOCEN | RCC_AHB1ENR_GPIOAEN;
+    RCC-> AHB1ENR |= RCC_AHB1ENR_GPIOAEN | 
+                     RCC_AHB1ENR_GPIOBEN | 
+                     RCC_AHB1ENR_GPIOCEN |
+                     RCC_AHB1ENR_GPIODEN;
     
     //Set port D pin 0,7, 14 as out
-    GPIOB->MODER |= (GPIO_MODE_OUTPUT_PP << PIN0*2|GPIO_MODE_OUTPUT_PP << PIN7*2|GPIO_MODE_OUTPUT_PP << PIN14*2);
-    GPIOC->MODER |= (GPIO_MODE_OUTPUT_PP << PIN8*2 | GPIO_MODE_OUTPUT_PP << PIN9*2);
-    GPIOC->OSPEEDR |= (GPIO_SPEED_FREQ_VERY_HIGH << PIN8*2 | GPIO_SPEED_FREQ_VERY_HIGH << PIN9*2);
+    GPIOB->MODER |= GPIO_MODE_OUTPUT_PP << PIN0*2 |
+                    GPIO_MODE_OUTPUT_PP << PIN7*2 |
+                    GPIO_MODE_OUTPUT_PP << PIN14*2;
 
-    //Set GPIOD as uart RX TX
-    GPIOD->MODER |= (GPIO_MODE_AF_PP << PIN5*2) | (GPIO_MODE_AF_PP << PIN6*2);
-    GPIOD->OSPEEDR |= (GPIO_SPEED_FREQ_VERY_HIGH << PIN5*2) | ((GPIO_SPEED_FREQ_VERY_HIGH << PIN6*2));
-    GPIOD->PUPDR |= (GPIO_PULLUP << PIN5*2) | (GPIO_PULLUP << PIN6*2);
-    GPIOD->AFR[0] |= (GPIO_AF7_USART2 << 20) | (GPIO_AF7_USART2 << 24);
-    
-    //Set GPIOA PIN3,4 GPIOC PIN10 as analog input
-    GPIOA->MODER |= (GPIO_MODE_ANALOG << PIN3*2);
-    GPIOA->OSPEEDR |= (GPIO_SPEED_FREQ_VERY_HIGH << PIN3*2);
-    GPIOA->PUPDR |= (GPIO_NOPULL << PIN3*2);
+    //Set GPIOD PIN5 and 6 as usart2 RX TX
+    GPIOD->MODER |= GPIO_MODE_AF_PP << PIN5*2 | 
+                    GPIO_MODE_AF_PP << PIN6*2;
+    GPIOD->OSPEEDR |= GPIO_SPEED_FREQ_VERY_HIGH << PIN5*2 | 
+                      GPIO_SPEED_FREQ_VERY_HIGH << PIN6*2;
+    GPIOD->PUPDR |= GPIO_PULLUP << PIN5*2 |
+                    GPIO_PULLUP << PIN6*2;
+    GPIOD->AFR[0] |= GPIO_AF7_USART2 << PIN5*4 | 
+                     GPIO_AF7_USART2 << PIN6*4;
 
-    GPIOC->MODER |= (GPIO_MODE_ANALOG << PIN0*2);
-    GPIOC->OSPEEDR |= (GPIO_SPEED_FREQ_VERY_HIGH << PIN0*2);
-    GPIOC->PUPDR |= (GPIO_NOPULL << PIN0*2);
+    //Set GPIOC PIN6 and 7 as usart6 RX TX
+    GPIOC->MODER |= GPIO_MODE_AF_PP << PIN6*2 |
+                    GPIO_MODE_AF_PP << PIN7*2;
+    GPIOC->OSPEEDR |= GPIO_SPEED_FREQ_VERY_HIGH << PIN6*2 |
+                      GPIO_SPEED_FREQ_VERY_HIGH << PIN7*2;
+    GPIOC->PUPDR |= GPIO_PULLUP << PIN6*2 |
+                    GPIO_PULLUP << PIN7*2;
+    GPIOC->AFR[0] |= GPIO_AF8_USART6 << PIN6*4 |
+                     GPIO_AF8_USART6 << PIN7*4;
+                     
+    //Set GPIOA PIN3 GPIOC PIN10 as analog input
+    GPIOA->MODER |= GPIO_MODE_ANALOG << PIN3*2;
+    GPIOA->OSPEEDR |= GPIO_SPEED_FREQ_VERY_HIGH << PIN3*2;
+    GPIOA->PUPDR |= GPIO_NOPULL << PIN3*2;
+
+    GPIOC->MODER |= GPIO_MODE_ANALOG << PIN0*2;
+    GPIOC->OSPEEDR |= GPIO_SPEED_FREQ_VERY_HIGH << PIN0*2;
+    GPIOC->PUPDR |= GPIO_NOPULL << PIN0*2;
     
-    GPIOC->MODER|= (GPIO_MODE_AF_PP << PIN6*2) | (GPIO_MODE_AF_PP << PIN7*2);
-    GPIOC->OSPEEDR |= (GPIO_SPEED_FREQ_VERY_HIGH << PIN6*2) | ((GPIO_SPEED_FREQ_VERY_HIGH << PIN7*2));
-    GPIOC->PUPDR |= (GPIO_PULLUP << PIN6*2) | (GPIO_PULLUP << PIN7*2);
-    GPIOC->AFR[0] |= (GPIO_AF8_USART6 << 24) | (GPIO_AF8_USART6 << 28);
-    
-    GPIOA->MODER |= (GPIO_MODE_ANALOG << PIN4*2);
-    GPIOA->OSPEEDR |= (GPIO_SPEED_FREQ_VERY_HIGH << PIN4*2);
-    GPIOA->PUPDR |= (GPIO_NOPULL << PIN4*2);
+    //Set GPIOA PIN4 as analog out
+    GPIOA->MODER |= GPIO_MODE_ANALOG << PIN4*2 |
+                    GPIO_MODE_ANALOG << PIN5*2;
+    GPIOA->OSPEEDR |= GPIO_SPEED_FREQ_VERY_HIGH << PIN4*2 |
+                      GPIO_SPEED_FREQ_VERY_HIGH << PIN5*2;
+    GPIOA->PUPDR |= GPIO_NOPULL << PIN4*2 |
+                    GPIO_NOPULL << PIN5*2;
+
+
+
 
     //MX_USART2_UART_Init();
     RCC->APB1ENR |= RCC_APB1ENR_USART2EN;
@@ -232,31 +235,61 @@ int main(void)
     
     //DMA Init
     RCC->AHB1ENR |= RCC_AHB1ENR_DMA2EN;
-    DMA2_Stream0->CR |= DMA_SxCR_CIRC |
+    DMA2_Stream0->CR = DMA_SxCR_CIRC |
                         DMA_SxCR_MINC | 
                         DMA_SxCR_MSIZE_0 | 
                         DMA_SxCR_PSIZE_0;
     DMA2_Stream0->PAR = (uint32_t) &ADC1->DR;
     DMA2_Stream0->M0AR = (uint32_t) ADC_Buff;
     DMA2_Stream0->NDTR = ADC_BUF_NUM;
-    
     DMA2_Stream0->CR |= DMA_SxCR_EN;
-    DMA2->LIFCR |= DMA_LIFCR_CFEIF0 |
-                   DMA_LIFCR_CDMEIF0 |
-                   DMA_LIFCR_CTEIF0 |
-                   DMA_LIFCR_CHTIF0 |
-                   DMA_LIFCR_CTCIF0;
                    
     //DAC Init               
     RCC->APB1ENR |= RCC_APB1ENR_DACEN;
-    DAC->CR = DAC_CR_EN1;
+    DAC->CR = DAC_CR_EN1 |
+              DAC_CR_DMAEN1 |
+              DAC_CR_TEN1 |
+              DAC_CR_EN2 |
+              DAC_CR_DMAEN2 |
+              DAC_CR_TEN2;
     
-    //TIM8 init for DAC SIN OUT
-    RCC->APB2ENR |= RCC_APB2ENR_TIM11EN;
-    TIM11->PSC = 0; // F_CPU/10-1
-    TIM11->ARR = 200;
-    TIM11->DIER |= TIM_DIER_UIE;
-    TIM11->CR1 |= TIM_CR1_CEN;
+    //TIM6 init for DAC SIN OUT
+    RCC->APB1ENR |= RCC_APB1ENR_TIM6EN; //50Mhz
+    TIM6->PSC = 4; 
+    TIM6->ARR = 10;
+    TIM6->CR1 = TIM_CR1_CEN;
+    TIM6->CR2 = TIM_CR2_MMS_1;
+    
+    RCC->AHB1ENR |= RCC_AHB1ENR_DMA1EN;
+    DMA1_Stream5->CR = DMA_SxCR_DIR_0 |
+                       DMA_SxCR_CIRC |
+                       DMA_SxCR_MINC |
+                       DMA_SxCR_PSIZE_0 |
+                       DMA_SxCR_MSIZE_0 |
+                       DMA_SxCR_CHSEL_0 |
+                       DMA_SxCR_CHSEL_1 |
+                       DMA_SxCR_CHSEL_2;
+    DMA1_Stream5->PAR = (uint32_t) &DAC->DHR12R1;
+    DMA1_Stream5->M0AR = (uint32_t)sin_buff;
+    DMA1_Stream5->NDTR = NUM_OF_POINTS;
+    DMA1_Stream5->CR |= DMA_SxCR_EN;
+
+    DMA1_Stream6->CR = DMA_SxCR_DIR_0 |
+                       DMA_SxCR_CIRC |
+                       DMA_SxCR_MINC |
+                       DMA_SxCR_PSIZE_0 |
+                       DMA_SxCR_MSIZE_0 |
+                       DMA_SxCR_CHSEL_0 |
+                       DMA_SxCR_CHSEL_1 |
+                       DMA_SxCR_CHSEL_2;
+    DMA1_Stream6->PAR = (uint32_t) &DAC->DHR12R2;
+    DMA1_Stream6->M0AR = (uint32_t)cos_buff;
+    DMA1_Stream6->NDTR = NUM_OF_POINTS;
+    DMA1_Stream6->CR |= DMA_SxCR_EN;
+    
+    
+    
+    
        
  /*   
     RCC-> APB2ENR |= RCC_APB2ENR_SPI1EN;
