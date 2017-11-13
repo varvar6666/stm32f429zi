@@ -219,6 +219,22 @@ int main(void)
                      GPIO_AF1_TIM1 << (PIN13*4 - 32) |
                      GPIO_AF1_TIM1 << (PIN14*4 - 32);
 
+    GPIOD->MODER |= GPIO_MODE_AF_PP << PIN12*2 |
+                    GPIO_MODE_AF_PP << PIN13*2 |
+                    GPIO_MODE_AF_PP << PIN14*2 |
+                    GPIO_MODE_AF_PP << PIN15*2;
+    GPIOD->OSPEEDR |= GPIO_SPEED_FREQ_MEDIUM << PIN12*2 |
+                      GPIO_SPEED_FREQ_MEDIUM << PIN13*2 |
+                      GPIO_SPEED_FREQ_MEDIUM << PIN14*2 |
+                      GPIO_SPEED_FREQ_MEDIUM << PIN15*2;
+    GPIOD->PUPDR |= GPIO_NOPULL << PIN12*2 |
+                    GPIO_NOPULL << PIN13*2 |
+                    GPIO_NOPULL << PIN14*2 |
+                    GPIO_NOPULL << PIN15*2;
+    GPIOD->AFR[1] |= GPIO_AF2_TIM4 << (PIN12*4 - 32) |
+                     GPIO_AF2_TIM4 << (PIN13*4 - 32) |
+                     GPIO_AF2_TIM4 << (PIN14*4 - 32) |
+                     GPIO_AF2_TIM4 << (PIN15*4 - 32);
 
     //MX_USART2_UART_Init();
     RCC->APB1ENR |= RCC_APB1ENR_USART2EN;
@@ -328,6 +344,24 @@ int main(void)
     TIM1->CCR4 = 10000;
     TIM1->CR1 = TIM_CR1_CEN;
     
+    //TIM4 for input capture
+    RCC->APB1ENR |= RCC_APB1ENR_TIM4EN;//APB1_TIM clk = 50MHz
+    TIM4->CCMR1 = TIM_CCMR1_CC1S_0 |
+                  TIM_CCMR1_CC2S_0;
+    TIM4->CCMR2 = TIM_CCMR2_CC3S_0 |
+                  TIM_CCMR2_CC4S_0;
+    TIM4->CCER = TIM_CCER_CC1P |
+                 TIM_CCER_CC1E |
+                 TIM_CCER_CC2P |
+                 TIM_CCER_CC2E |
+                 TIM_CCER_CC3P |
+                 TIM_CCER_CC3E |
+                 TIM_CCER_CC4P |
+                 TIM_CCER_CC4E;
+    TIM4->SMCR = TIM_SMCR_SMS_2 |
+                 TIM_SMCR_TS_2;
+    TIM4->PSC = 49;
+    TIM4->CR1 = TIM_CR1_CEN;
     
        
  /*   
