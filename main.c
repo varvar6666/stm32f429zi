@@ -247,8 +247,6 @@ int main(void)
                    DMA_LIFCR_CHTIF0 |
                    DMA_LIFCR_CTCIF0;
                    
-                   
-                   
     //DAC Init               
     RCC->APB1ENR |= RCC_APB1ENR_DACEN;
     DAC->CR = DAC_CR_EN1;
