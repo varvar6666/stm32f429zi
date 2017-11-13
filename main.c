@@ -156,7 +156,8 @@ int main(void)
     RCC-> AHB1ENR |= RCC_AHB1ENR_GPIOAEN | 
                      RCC_AHB1ENR_GPIOBEN | 
                      RCC_AHB1ENR_GPIOCEN |
-                     RCC_AHB1ENR_GPIODEN;
+                     RCC_AHB1ENR_GPIODEN |
+                     RCC_AHB1ENR_GPIOEEN;
     
     //Set port D pin 0,7, 14 as out
     GPIOB->MODER |= GPIO_MODE_OUTPUT_PP << PIN0*2 |
@@ -200,7 +201,23 @@ int main(void)
     GPIOA->PUPDR |= GPIO_NOPULL << PIN4*2 |
                     GPIO_NOPULL << PIN5*2;
 
-
+    //Set GPIOE PIN 9,11,13,14 as TIM1 PWM out
+    GPIOE->MODER |= GPIO_MODE_AF_PP << PIN9*2  |
+                    GPIO_MODE_AF_PP << PIN11*2 |
+                    GPIO_MODE_AF_PP << PIN13*2 |
+                    GPIO_MODE_AF_PP << PIN14*2;
+    GPIOE->OSPEEDR |= GPIO_SPEED_FREQ_MEDIUM << PIN9*2  |
+                      GPIO_SPEED_FREQ_MEDIUM << PIN11*2 |
+                      GPIO_SPEED_FREQ_MEDIUM << PIN13*2 |
+                      GPIO_SPEED_FREQ_MEDIUM << PIN14*2;
+    GPIOE->PUPDR |= GPIO_NOPULL << PIN9*2  |
+                    GPIO_NOPULL << PIN11*2 |
+                    GPIO_NOPULL << PIN13*2 |
+                    GPIO_NOPULL << PIN14*2;
+    GPIOE->AFR[1] |= GPIO_AF1_TIM1 << (PIN9*4  - 32) |
+                     GPIO_AF1_TIM1 << (PIN11*4 - 32) |
+                     GPIO_AF1_TIM1 << (PIN13*4 - 32) |
+                     GPIO_AF1_TIM1 << (PIN14*4 - 32);
 
 
     //MX_USART2_UART_Init();
@@ -214,11 +231,11 @@ int main(void)
     USART6->CR1 = USART_CR1_UE | USART_CR1_TE | USART_CR1_RE | USART_CR1_RXNEIE;    
 
     //Timer 3s Init
-    RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;//тактирование таймера
-    TIM3->PSC = 0;
-    TIM3->ARR = 100;
-    TIM3->CR2 |= TIM_CR2_MMS_1;
-    TIM3->CR1 |= TIM_CR1_CEN;
+    RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;//50 Mhz
+    TIM3->PSC = 49;
+    TIM3->ARR = 10;
+    TIM3->CR2 = TIM_CR2_MMS_1;
+    TIM3->CR1 = TIM_CR1_CEN;
     
     //ADC1 Init
     RCC->APB2ENR |= RCC_APB2ENR_ADC1EN; //включаем тактирование
@@ -260,6 +277,7 @@ int main(void)
     TIM6->CR1 = TIM_CR1_CEN;
     TIM6->CR2 = TIM_CR2_MMS_1;
     
+    //DMA for DAC
     RCC->AHB1ENR |= RCC_AHB1ENR_DMA1EN;
     DMA1_Stream5->CR = DMA_SxCR_DIR_0 |
                        DMA_SxCR_CIRC |
@@ -287,7 +305,28 @@ int main(void)
     DMA1_Stream6->NDTR = NUM_OF_POINTS;
     DMA1_Stream6->CR |= DMA_SxCR_EN;
     
-    
+    //TIM1 PWM mode
+    RCC->APB2ENR |= RCC_APB2ENR_TIM1EN;//APB2_TIM clk=100MHz
+    TIM1->PSC = 99;
+    TIM1->ARR = 20000;
+    TIM1->CCER = TIM_CCER_CC1E |
+                 TIM_CCER_CC2E |
+                 TIM_CCER_CC3E |
+                 TIM_CCER_CC4E;
+    TIM1->CCMR1 = TIM_CCMR1_OC1M_1 |
+                  TIM_CCMR1_OC1M_2 |
+                  TIM_CCMR1_OC2M_1 |
+                  TIM_CCMR1_OC2M_2;
+    TIM1->CCMR2 = TIM_CCMR2_OC3M_1 |
+                  TIM_CCMR2_OC3M_2 |
+                  TIM_CCMR2_OC4M_1 |
+                  TIM_CCMR2_OC4M_2;
+    TIM1->BDTR = TIM_BDTR_MOE;
+    TIM1->CCR1 = 1500;
+    TIM1->CCR2 = 800;
+    TIM1->CCR3 = 2200;
+    TIM1->CCR4 = 10000;
+    TIM1->CR1 = TIM_CR1_CEN;
     
     
        
